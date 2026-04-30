@@ -1,5 +1,5 @@
 # DataMining-Semantic-Miners
-Outputs:
+feature engineering outputs:
 - TF-IDF features (train/test)
 - BERT-ready text fields (train/test)
 - Salary labels (low/medium/high)
