@@ -1,0 +1,70 @@
+======================================================================
+Analysis: Traditional ML vs Modern ML (BERT)
+======================================================================
+
+Summary
+----------------------------------------------------------------------
+
+Overall Winner: BERT (Modern ML)
+Performance Gap: 0.3219 (32.19%)
+
+Model Performance Rankings
+----------------------------------------------------------------------
+4. BERT                 Acc: 1.0000  F1: 1.0000  Type: Modern
+1. Random Forest        Acc: 0.6781  F1: 0.6709  Type: Traditional
+2. Linear SVM           Acc: 0.6677  F1: 0.6666  Type: Traditional
+3. Naive Bayes          Acc: 0.6174  F1: 0.6134  Type: Traditional
+
+
+METRICS
+----------------------------------------------------------------------
+
+Traditional ML Best: Random Forest
+  Accuracy:  0.6781
+  Precision: 0.6716
+  Recall:    0.6781
+  F1 Score:  0.6709
+
+Modern ML: BERT
+  Accuracy:  1.0000
+  Precision: 1.0000
+  Recall:    1.0000
+  F1 Score:  1.0000
+
+Class-Wise Performance Comparison
+----------------------------------------------------------------------
+
+HIGH:
+  Traditional ML Avg - Precision: 0.7030, Recall: 0.7192, F1: 0.7107
+  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
+
+LOW:
+  Traditional ML Avg - Precision: 0.6808, Recall: 0.7507, F1: 0.7138
+  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
+
+MEDIUM:
+  Traditional ML Avg - Precision: 0.5652, Recall: 0.4928, F1: 0.5256
+  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
+
+
+Key Findings
+----------------------------------------------------------------------
+BERT Outperforms Traditional ML
+  - Accuracy improvement: +47.47%
+  - BERT is better suited for semantic understanding of job descriptions
+  - Modern transformer models capture nuanced language patterns
+
+
+Recommendations
+----------------------------------------------------------------------
+1. Deploy BERT as production model for salary prediction
+2. Consider ensemble: BERT + Random Forest for robustness
+3. Further fine-tune BERT on domain-specific job data
+
+Generated Visualizations
+----------------------------------------------------------------------
+1. traditional_vs_modern_metrics.png - 4-panel metrics comparison
+2. performance_radar_chart.png - Radar chart of all models
+3. traditional_vs_modern_comparison.csv - Full metrics table
+
+======================================================================

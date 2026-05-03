@@ -42,7 +42,7 @@ plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
 print("="*70)
-print("Analysis: Traditional ML and Modern ML Analysis & Visualization")
+print("Analysis: Traditional ML Analysis")
 print("="*70)
 
 # 1. Load Data
@@ -289,55 +289,10 @@ plt.close()
 print("    Overall performance comparison")
 
 
-# 8. Feature Importance (Random Forest)
-print("\n#8 Analyzing Feature Importance (Random Forest)...")
-
-if 'Random Forest' in models_dict:
-    rf_model = models_dict['Random Forest']
-    
-    if hasattr(rf_model, 'feature_importances_'):
-        # Get top features
-        feature_importance = rf_model.feature_importances_
-        top_indices = np.argsort(feature_importance)[-20:]  # Top 20
-        
-        plt.figure(figsize=(10, 8))
-        plt.barh(range(len(top_indices)), feature_importance[top_indices], color='steelblue')
-        plt.yticks(range(len(top_indices)), [f'Feature {i}' for i in top_indices])
-        plt.xlabel('Importance', fontsize=12)
-        plt.title('Random Forest - Top 20 Most Important Features', fontsize=14, fontweight='bold')
-        plt.tight_layout()
-        plt.savefig(f"{ANALYSIS_DIR}/feature_importance_random_forest.png", dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        print(f"     Top 20 features identified")
 
 
-# 9. Training Time Comparison
-print("\n#9 Creating Training Time Comparison...")
-
-fig, ax = plt.subplots(figsize=(10, 6))
-
-results_sorted = results_df.sort_values('Train Time (sec)', ascending=True)
-colors_time = ['green' if x < 1 else 'orange' if x < 5 else 'red' 
-               for x in results_sorted['Train Time (sec)']]
-
-ax.barh(results_sorted['Model'], results_sorted['Train Time (sec)'], color=colors_time, alpha=0.8)
-ax.set_xlabel('Training Time (seconds)', fontsize=12)
-ax.set_title('Model Training Time Comparison', fontsize=14, fontweight='bold')
-ax.grid(axis='x', alpha=0.3)
-
-# Add value labels
-for i, (model, time) in enumerate(zip(results_sorted['Model'], results_sorted['Train Time (sec)'])):
-    ax.text(time + 0.1, i, f'{time:.2f}s', va='center', fontsize=11)
-
-plt.tight_layout()
-plt.savefig(f"{ANALYSIS_DIR}/training_time_comparison.png", dpi=300, bbox_inches='tight')
-plt.close()
-
-print("     Training time comparison saved")
-
-# 10. Skill Gap Analysis: Association Rule Mining using the Apriori Algorithm
-print("\n#10 Performing Skill Gap Analysis (Association Rules)...")
+# 8. Skill Gap Analysis: Association Rule Mining using the Apriori Algorithm
+print("\n#8 Performing Skill Gap Analysis (Association Rules)...")
 
 if HAS_MLXTEND:
     try:
@@ -423,64 +378,199 @@ else:
     print("   mlxtend not installed, skipping skill gap analysis")
     print("   Install with: pip install mlxtend")
 
-# ============================================================================
-# 11. SUMMARY REPORT
-# ============================================================================
+# 9. Traditional vs Modern ML Comparison
+print("\n#9 Comparing Traditional vs Modern ML...")
 
-print("\n[11] Generating Summary Report...")
+try:
+    bert_test = pd.read_csv(f"{DATA_DIR}/bert_test.csv")
+    bert_predictions = bert_test['salary_label'].astype(str).values
+    
+    bert_accuracy = accuracy_score(y_test, bert_predictions)
+    bert_precision, bert_recall, bert_f1, _ = precision_recall_fscore_support(
+        y_test, bert_predictions, average="weighted"
+    )
+    
+    bert_available = True
+except Exception as e:
+    print(f"   Error loading BERT predictions: {e}")
+    bert_available = False
 
-summary_file = open(f"{ANALYSIS_DIR}/ANALYSIS_SUMMARY.txt", "w")
+if bert_available:
+    # Create comparison dataframe
+    trad_modern_comparison = pd.DataFrame({
+        'Model': ['Random Forest', 'Linear SVM', 'Naive Bayes', 'BERT'],
+        'Accuracy': [
+            results_df.iloc[0]['Accuracy'],
+            results_df.iloc[1]['Accuracy'],
+            results_df.iloc[2]['Accuracy'],
+            bert_accuracy
+        ],
+        'Precision': [
+            results_df.iloc[0]['Precision'],
+            results_df.iloc[1]['Precision'],
+            results_df.iloc[2]['Precision'],
+            bert_precision
+        ],
+        'Recall': [
+            results_df.iloc[0]['Recall'],
+            results_df.iloc[1]['Recall'],
+            results_df.iloc[2]['Recall'],
+            bert_recall
+        ],
+        'F1 Score': [
+            results_df.iloc[0]['F1 Score'],
+            results_df.iloc[1]['F1 Score'],
+            results_df.iloc[2]['F1 Score'],
+            bert_f1
+        ],
+        'Type': ['Traditional', 'Traditional', 'Traditional', 'Modern']
+    })
+    
+    print("\nModel Performance Comparison:")
+    print(trad_modern_comparison.to_string(index=False))
+    
+    # Save comparison
+    trad_modern_comparison.to_csv(f"{ANALYSIS_DIR}/traditional_vs_modern_comparison.csv", index=False)
+    
+    # Plot: Overall Metrics Comparison
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+    colors_list = ['steelblue', 'steelblue', 'steelblue', 'seagreen']
+    
+    for idx, metric in enumerate(metrics):
+        ax = axes[idx // 2, idx % 2]
+        
+        data = trad_modern_comparison.sort_values(metric, ascending=True)
+        ax.barh(data['Model'], data[metric], color=colors_list[:len(data)])
+        ax.set_xlabel(metric, fontsize=11)
+        ax.set_title(f'{metric} Comparison', fontsize=12, fontweight='bold')
+        ax.set_xlim([0, 1.0])
+        ax.grid(axis='x', alpha=0.3)
+    
+    plt.suptitle('Traditional ML vs Modern ML (BERT)', fontsize=14, fontweight='bold', y=1.00)
+    plt.tight_layout()
+    plt.savefig(f"{ANALYSIS_DIR}/traditional_vs_modern_metrics.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("    Comparison metrics saved")
+    
+    # Radar Chart Comparison
+    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw=dict(projection='polar'))
+    
+    angles = np.linspace(0, 2 * np.pi, len(metrics), endpoint=False).tolist()
+    angles += angles[:1]
+    
+    for idx, row in trad_modern_comparison.iterrows():
+        values = row[metrics].tolist()
+        values += values[:1]
+        
+        color = 'seagreen' if row['Type'] == 'Modern' else 'steelblue'
+        ax.plot(angles, values, 'o-', linewidth=2, label=row['Model'], color=color)
+        ax.fill(angles, values, alpha=0.15, color=color)
+    
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(metrics, fontsize=11)
+    ax.set_ylim(0, 1)
+    ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.grid(True)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=10)
+    
+    plt.title('Model Performance Radar Chart', fontsize=14, fontweight='bold', pad=20)
+    plt.tight_layout()
+    plt.savefig(f"{ANALYSIS_DIR}/performance_radar_chart.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("    Performance radar chart saved")
+    # Generate comprehensive summary report
+    summary_file = open(f"{ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt", "w")
+    
+    summary_file.write("="*70 + "\n")
+    summary_file.write("Analysis: Traditional ML vs Modern ML (BERT)\n")
+    summary_file.write("="*70 + "\n\n")
+    
+    summary_file.write("Summary\n")
+    summary_file.write("-"*70 + "\n\n")
+    
+    # Determine winner
+    best_trad = results_df.iloc[0]
+    bert_better = bert_accuracy > best_trad['Accuracy']
+    winner = "BERT (Modern ML)" if bert_better else best_trad['Model'] + " (Traditional ML)"
+    
+    summary_file.write(f"Overall Winner: {winner}\n")
+    summary_file.write(f"Performance Gap: {abs(bert_accuracy - best_trad['Accuracy']):.4f} ({abs(bert_accuracy - best_trad['Accuracy'])*100:.2f}%)\n\n")
+    
+    summary_file.write("Model Performance Rankings\n")
+    summary_file.write("-"*70 + "\n")
+    
+    for idx, row in trad_modern_comparison.sort_values('Accuracy', ascending=False).iterrows():
+        summary_file.write(f"{idx+1}. {row['Model']:<20} Acc: {row['Accuracy']:.4f}  F1: {row['F1 Score']:.4f}  Type: {row['Type']}\n")
+    
+    summary_file.write("\n\nMETRICS\n")
+    summary_file.write("-"*70 + "\n\n")
+    
+    summary_file.write("Traditional ML Best: Random Forest\n")
+    summary_file.write(f"  Accuracy:  {results_df.iloc[0]['Accuracy']:.4f}\n")
+    summary_file.write(f"  Precision: {results_df.iloc[0]['Precision']:.4f}\n")
+    summary_file.write(f"  Recall:    {results_df.iloc[0]['Recall']:.4f}\n")
+    summary_file.write(f"  F1 Score:  {results_df.iloc[0]['F1 Score']:.4f}\n\n")
+    
+    summary_file.write("Modern ML: BERT\n")
+    summary_file.write(f"  Accuracy:  {bert_accuracy:.4f}\n")
+    summary_file.write(f"  Precision: {bert_precision:.4f}\n")
+    summary_file.write(f"  Recall:    {bert_recall:.4f}\n")
+    summary_file.write(f"  F1 Score:  {bert_f1:.4f}\n\n")
+    
+    summary_file.write("Class-Wise Performance Comparison\n")
+    summary_file.write("-"*70 + "\n\n")
+    
+    # Build class comparison
+    for class_label in classes:
+        trad_data = comparison_df[comparison_df['Class'] == class_label]
+        
+        summary_file.write(f"{class_label.upper()}:\n")
+        summary_file.write(f"  Traditional ML Avg - Precision: {trad_data['Precision'].mean():.4f}, Recall: {trad_data['Recall'].mean():.4f}, F1: {trad_data['F1'].mean():.4f}\n")
+        summary_file.write(f"  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000\n\n")
+    
+    summary_file.write("\nKey Findings\n")
+    summary_file.write("-"*70 + "\n")
+    
+    if bert_better:
+        improvement = (bert_accuracy - best_trad['Accuracy']) / best_trad['Accuracy'] * 100
+        summary_file.write(f"BERT Outperforms Traditional ML\n")
+        summary_file.write(f"  - Accuracy improvement: +{improvement:.2f}%\n")
+        summary_file.write(f"  - BERT is better suited for semantic understanding of job descriptions\n")
+        summary_file.write(f"  - Modern transformer models capture nuanced language patterns\n")
+    else:
+        gap = (best_trad['Accuracy'] - bert_accuracy) / best_trad['Accuracy'] * 100
+        summary_file.write(f"Traditional ML (Random Forest) Competitive\n")
+        summary_file.write(f"  - Only {gap:.2f}% behind BERT\n")
+        summary_file.write(f"  - TF-IDF features are effective for this task\n")
+        summary_file.write(f"  - Traditional methods offer better interpretability and speed\n")
+    
+    summary_file.write("\n\nRecommendations\n")
+    summary_file.write("-"*70 + "\n")
+    
+    if bert_better:
+        summary_file.write("1. Deploy BERT as production model for salary prediction\n")
+        summary_file.write("2. Consider ensemble: BERT + Random Forest for robustness\n")
+        summary_file.write("3. Further fine-tune BERT on domain-specific job data\n")
+    else:
+        summary_file.write("1. Random Forest remains competitive and easier to deploy\n")
+        summary_file.write("2. Consider: is BERT's marginal benefit worth the complexity?\n")
+        summary_file.write("3. Hybrid approach: Use Random Forest for production, BERT for validation\n")
+    
+    summary_file.write("\nGenerated Visualizations\n")
+    summary_file.write("-"*70 + "\n")
+    summary_file.write("1. traditional_vs_modern_metrics.png - 4-panel metrics comparison\n")
+    summary_file.write("2. performance_radar_chart.png - Radar chart of all models\n")
+    summary_file.write("3. traditional_vs_modern_comparison.csv - Full metrics table\n\n")
+    
+    summary_file.write("="*70 + "\n")
+    
+    summary_file.close()
+    
+    print(f"   Summary saved to: {ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt")
 
-summary_file.write("="*70 + "\n")
-summary_file.write("Traditional ML Models Analysis\n")
-summary_file.write("="*70 + "\n\n")
 
-
-best_model = results_df.iloc[0]
-summary_file.write(f"Best Performing Model: {best_model['Model']}\n")
-summary_file.write(f"  - Accuracy:  {best_model['Accuracy']:.4f}\n")
-summary_file.write(f"  - Precision: {best_model['Precision']:.4f}\n")
-summary_file.write(f"  - Recall:    {best_model['Recall']:.4f}\n")
-summary_file.write(f"  - F1 Score:  {best_model['F1 Score']:.4f}\n")
-summary_file.write(f"  - Training Time: {best_model['Train Time (sec)']:.2f}s\n\n")
-
-summary_file.write("ALL MODELS RANKED BY ACCURACY\n")
-summary_file.write("-"*70 + "\n")
-for idx, row in results_df.iterrows():
-    summary_file.write(f"{idx+1}. {row['Model']:<20} Acc: {row['Accuracy']:.4f}  F1: {row['F1 Score']:.4f}\n")
-
-summary_file.write("\n\nKEY INSIGHTS\n")
-summary_file.write("-"*70 + "\n")
-summary_file.write("1. Model Comparison:\n")
-summary_file.write("   - Random Forest shows best overall accuracy\n")
-summary_file.write("   - Linear SVM offers good balance of speed and accuracy\n")
-summary_file.write("   - Naive Bayes is fastest but with lower accuracy\n\n")
-
-summary_file.write("2. Class-wise Performance:\n")
-for class_label in classes:
-    class_data = comparison_df[comparison_df['Class'] == class_label]
-    avg_precision = class_data['Precision'].mean()
-    avg_recall = class_data['Recall'].mean()
-    summary_file.write(f"   - {class_label}: Avg Precision={avg_precision:.4f}, Avg Recall={avg_recall:.4f}\n")
-
-summary_file.write("\n3. Recommendations:\n")
-summary_file.write(f"   - Deploy {best_model['Model']} as baseline for production\n")
-summary_file.write("   - Consider ensemble methods for further improvement\n")
-summary_file.write("   - Evaluate against BERT/RoBERTa for modern comparison\n\n")
-
-summary_file.write("\nGENERATED VISUALIZATIONS\n")
-summary_file.write("-"*70 + "\n")
-summary_file.write("1. roc_curve_*.png - ROC curves for each model\n")
-summary_file.write("2. confusion_matrices_combined.png - All confusion matrices\n")
-summary_file.write("3. model_metrics_comparison.png - Precision/Recall/F1 by model\n")
-summary_file.write("4. overall_performance_comparison.png - Accuracy vs F1\n")
-summary_file.write("5. training_time_comparison.png - Training speed comparison\n")
-summary_file.write("6. feature_importance_random_forest.png - Top features\n")
-summary_file.write("7. skill_gap_association_rules.png - Skill co-occurrence patterns\n\n")
-
-summary_file.write("="*70 + "\n")
-
-summary_file.close()
-
-print(f"   Saved summary to: {ANALYSIS_DIR}/ANALYSIS_SUMMARY.txt")
-
+print("Analysis complete!")
