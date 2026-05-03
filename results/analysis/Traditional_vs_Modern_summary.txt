@@ -6,11 +6,11 @@ Summary
 ----------------------------------------------------------------------
 
 Overall Winner: BERT (Modern ML)
-Performance Gap: 0.3219 (32.19%)
+Performance Gap: 0.0226 (2.26%)
 
 Model Performance Rankings
 ----------------------------------------------------------------------
-4. BERT                 Acc: 1.0000  F1: 1.0000  Type: Modern
+4. BERT                 Acc: 0.7007  F1: 0.7005  Type: Modern
 1. Random Forest        Acc: 0.6781  F1: 0.6709  Type: Traditional
 2. Linear SVM           Acc: 0.6677  F1: 0.6666  Type: Traditional
 3. Naive Bayes          Acc: 0.6174  F1: 0.6134  Type: Traditional
@@ -26,10 +26,10 @@ Traditional ML Best: Random Forest
   F1 Score:  0.6709
 
 Modern ML: BERT
-  Accuracy:  1.0000
-  Precision: 1.0000
-  Recall:    1.0000
-  F1 Score:  1.0000
+  Accuracy:  0.7007
+  Precision: 0.7003
+  Recall:    0.7007
+  F1 Score:  0.7005
 
 Class-Wise Performance Comparison
 ----------------------------------------------------------------------
@@ -50,7 +50,7 @@ MEDIUM:
 Key Findings
 ----------------------------------------------------------------------
 BERT Outperforms Traditional ML
-  - Accuracy improvement: +47.47%
+  - Accuracy improvement: +3.33%
   - BERT is better suited for semantic understanding of job descriptions
   - Modern transformer models capture nuanced language patterns
 

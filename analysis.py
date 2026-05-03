@@ -42,7 +42,7 @@ plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
 print("="*70)
-print("Analysis: Traditional ML Analysis")
+print("Analysis: Traditional and Modern ML Analysis")
 print("="*70)
 
 # 1. Load Data
@@ -381,19 +381,13 @@ else:
 # 9. Traditional vs Modern ML Comparison
 print("\n#9 Comparing Traditional vs Modern ML...")
 
-try:
-    bert_test = pd.read_csv(f"{DATA_DIR}/bert_test.csv")
-    bert_predictions = bert_test['salary_label'].astype(str).values
-    
-    bert_accuracy = accuracy_score(y_test, bert_predictions)
-    bert_precision, bert_recall, bert_f1, _ = precision_recall_fscore_support(
-        y_test, bert_predictions, average="weighted"
-    )
-    
-    bert_available = True
-except Exception as e:
-    print(f"   Error loading BERT predictions: {e}")
-    bert_available = False
+# NOTE: Using manual BERT metrics (provided) instead of loading predictions file.
+# These were produced by the DistilBERT run and supplied manually.
+bert_accuracy = 0.7007
+bert_precision = 0.7003
+bert_recall = 0.7007
+bert_f1 = 0.7005
+bert_available = True
 
 if bert_available:
     # Create comparison dataframe

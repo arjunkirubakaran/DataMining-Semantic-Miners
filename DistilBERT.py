@@ -93,7 +93,7 @@ print("Training: DistilBERT (PyTorch implementation)")
 for epoch in range(epochs):
     model.train()
     total_loss = 0
-    start_time = tim3e.time()
+    start_time = time.time()
     
     for batch_idx, batch in enumerate(train_loader):
         # Move batch data to GPU/CPU
@@ -148,6 +148,22 @@ print(f"Accuracy : {acc:.4f}")
 print(f"Precision: {precision:.4f}")
 print(f"Recall   : {recall:.4f}")
 print(f"F1 Score : {f1:.4f}")
+
+# Save predictions to CSV for downstream analysis
+try:
+    inv_label_map = {0: 'low', 1: 'medium', 2: 'high'}
+    pred_labels = [inv_label_map[int(p)] for p in all_preds]
+    true_labels = [inv_label_map[int(t)] for t in all_labels]
+    pred_df = pd.DataFrame({
+        'bert_input': test_texts,
+        'true_label': true_labels,
+        'predicted_label': pred_labels
+    })
+    pred_file = f"{RESULT_DIR}/bert_predictions.csv"
+    pred_df.to_csv(pred_file, index=False)
+    print(f"Saved BERT predictions to: {pred_file}")
+except Exception as e:
+    print(f"Could not save BERT predictions: {e}")
 
 # 7. Save Model & Outputs
 print("\nSaving PyTorch model...")
