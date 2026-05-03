@@ -1,0 +1,16 @@
+# Ignore the large deep learning model weights
+saved_models/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environments (if you use one later)
+venv/
+env/
+.env
+
+# Ignore OS system files
+.DS_Store
+Thumbs.db
