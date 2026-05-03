@@ -1,10 +1,7 @@
 ======================================================================
-ANALYST REPORT: Traditional ML Models Analysis
-Project: The Semantic Job Miner
+Traditional ML Models Analysis
 ======================================================================
 
-EXECUTIVE SUMMARY
-----------------------------------------------------------------------
 Best Performing Model: Random Forest
   - Accuracy:  0.6781
   - Precision: 0.6716

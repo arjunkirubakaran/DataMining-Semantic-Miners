@@ -45,11 +45,8 @@ print("="*70)
 print("Analysis: Traditional ML and Modern ML Analysis & Visualization")
 print("="*70)
 
-# ============================================================================
-# 1. LOAD DATA
-# ============================================================================
-
-print("\n[1] Loading Data...")
+# 1. Load Data
+print("\n#1 Loading Data...")
 
 X_train = load_npz(f"{DATA_DIR}/X_tfidf_train.npz")
 X_test = load_npz(f"{DATA_DIR}/X_tfidf_test.npz")
@@ -61,11 +58,8 @@ print(f"   Train set: {X_train.shape}")
 print(f"   Test set:  {X_test.shape}")
 print(f"   Classes:   {np.unique(y_test)}")
 
-# ============================================================================
-# 2. LOAD TRAINED MODELS & GET PREDICTIONS
-# ============================================================================
-
-print("\n[2] Loading Trained Models...")
+# 2. Load trained models and predictions
+print("\n#2 Loading Trained Models...")
 
 models_dict = {}
 predictions_dict = {}
@@ -93,21 +87,17 @@ for name, file in zip(model_names, model_files):
     except Exception as e:
         print(f"   ✗ Error loading {name}: {e}")
 
-# ============================================================================
-# 3. LOAD RESULTS CSV
-# ============================================================================
 
-print("\n[3] Loading Results Summary...")
+# 3. Load results from csv files
+print("\n#3 Loading Results Summary...")
 
 results_df = pd.read_csv(f"{RESULT_DIR}/traditional_model_results.csv")
 print("\nModel Performance Summary:")
 print(results_df.to_string(index=False))
 
-# ============================================================================
-# 4. DETAILED CLASSIFICATION REPORTS
-# ============================================================================
 
-print("\n[4] Generating Detailed Classification Reports...")
+# 4. Detailed Classification Reports
+print("\n#4 Generating Detailed Classification Reports")
 
 report_file = open(f"{ANALYSIS_DIR}/classification_reports.txt", "w")
 
@@ -135,11 +125,8 @@ for name, preds in predictions_dict.items():
 report_file.close()
 print(f"   Saved to: {ANALYSIS_DIR}/classification_reports.txt")
 
-# ============================================================================
-# 5. ROC CURVES (One-vs-Rest for Multi-class)
-# ============================================================================
-
-print("\n[5] Generating ROC Curves...")
+# 5. ROC Curves
+print("\n#5 Generating ROC Curves...")
 
 # Binarize labels for ROC curve
 classes = np.unique(y_test)
@@ -189,11 +176,8 @@ for name, probs in probabilities_dict.items():
     
     print(f"     {name}")
 
-# ============================================================================
-# 6. CONFUSION MATRICES (Enhanced)
-# ============================================================================
-
-print("\n[6] Generating Confusion Matrices...")
+# 6. Confusion Matrices
+print("\n#6 Generating Confusion Matrices...")
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
@@ -226,11 +210,8 @@ plt.close()
 
 print("     Confusion matrices saved")
 
-# ============================================================================
-# 7. MODEL COMPARISON - DETAILED METRICS
-# ============================================================================
-
-print("\n[7] Creating Model Comparison Visualizations...")
+# 7. Model Comparison
+print("\n#7 Creating Model Comparison Visualizations...")
 
 # Calculate per-class metrics
 comparison_data = []
@@ -307,11 +288,9 @@ plt.close()
 
 print("    Overall performance comparison")
 
-# ============================================================================
-# 8. FEATURE IMPORTANCE (Random Forest)
-# ============================================================================
 
-print("\n[8] Analyzing Feature Importance (Random Forest)...")
+# 8. Feature Importance (Random Forest)
+print("\n#8 Analyzing Feature Importance (Random Forest)...")
 
 if 'Random Forest' in models_dict:
     rf_model = models_dict['Random Forest']
@@ -332,11 +311,9 @@ if 'Random Forest' in models_dict:
         
         print(f"     Top 20 features identified")
 
-# ============================================================================
-# 9. TRAINING TIME COMPARISON
-# ============================================================================
 
-print("\n[9] Creating Training Time Comparison...")
+# 9. Training Time Comparison
+print("\n#9 Creating Training Time Comparison...")
 
 fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -359,11 +336,8 @@ plt.close()
 
 print("     Training time comparison saved")
 
-# ============================================================================
-# 10. SKILL GAP ANALYSIS (Association Rules - Apriori)
-# ============================================================================
-
-print("\n[10] Performing Skill Gap Analysis (Association Rules)...")
+# 10. Skill Gap Analysis: Association Rule Mining using the Apriori Algorithm
+print("\n#10 Performing Skill Gap Analysis (Association Rules)...")
 
 if HAS_MLXTEND:
     try:
@@ -458,12 +432,9 @@ print("\n[11] Generating Summary Report...")
 summary_file = open(f"{ANALYSIS_DIR}/ANALYSIS_SUMMARY.txt", "w")
 
 summary_file.write("="*70 + "\n")
-summary_file.write("ANALYST REPORT: Traditional ML Models Analysis\n")
-summary_file.write("Project: The Semantic Job Miner\n")
+summary_file.write("Traditional ML Models Analysis\n")
 summary_file.write("="*70 + "\n\n")
 
-summary_file.write("EXECUTIVE SUMMARY\n")
-summary_file.write("-"*70 + "\n")
 
 best_model = results_df.iloc[0]
 summary_file.write(f"Best Performing Model: {best_model['Model']}\n")
@@ -513,22 +484,3 @@ summary_file.close()
 
 print(f"   Saved summary to: {ANALYSIS_DIR}/ANALYSIS_SUMMARY.txt")
 
-# ============================================================================
-# FINAL SUMMARY
-# ============================================================================
-
-print("\n" + "="*70)
-print("ANALYSIS COMPLETE!")
-print("="*70)
-print(f"\nAll outputs saved to: {ANALYSIS_DIR}/")
-print("\nGenerated Files:")
-print("  • Classification Reports (classification_reports.txt)")
-print("  • ROC Curves (roc_curve_*.png)")
-print("  • Confusion Matrices (confusion_matrices_combined.png)")
-print("  • Model Comparisons (model_metrics_comparison.png)")
-print("  • Performance Comparison (overall_performance_comparison.png)")
-print("  • Training Time Analysis (training_time_comparison.png)")
-print("  • Feature Importance (feature_importance_random_forest.png)")
-print("  • Skill Gap Analysis (skill_gap_*.png / skill_gap_rules.csv)")
-print("  • Summary Report (ANALYSIS_SUMMARY.txt)")
-print("\n" + "="*70)
