@@ -125,7 +125,7 @@ for name, preds in predictions_dict.items():
     report_file.write(classification_report(y_test, preds) + "\n")
 
 report_file.close()
-print(f"   Saved to: {ANALYSIS_DIR}/classification_reports.txt")
+print(f"Saved to: {ANALYSIS_DIR}/classification_reports.txt")
 
 # ROC Curves
 print("\n#5 Generating ROC Curves")
