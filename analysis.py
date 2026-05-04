@@ -41,11 +41,9 @@ warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
-print("="*70)
-print("Analysis: Traditional and Modern ML Analysis")
-print("="*70)
+print("\nAnalysis: Traditional and Modern ML Analysis")
 
-# 1. Load Data
+# Load Data
 print("\n#1 Loading Data...")
 
 X_train = load_npz(f"{DATA_DIR}/X_tfidf_train.npz")
@@ -54,11 +52,11 @@ X_test = load_npz(f"{DATA_DIR}/X_tfidf_test.npz")
 y_train = pd.read_csv(f"{DATA_DIR}/y_train.csv").iloc[:, 0].astype(str).values
 y_test = pd.read_csv(f"{DATA_DIR}/y_test.csv").iloc[:, 0].astype(str).values
 
-print(f"   Train set: {X_train.shape}")
-print(f"   Test set:  {X_test.shape}")
-print(f"   Classes:   {np.unique(y_test)}")
+print(f"Train set: {X_train.shape}")
+print(f"Test set:  {X_test.shape}")
+print(f"Classes:   {np.unique(y_test)}")
 
-# 2. Load trained models and predictions
+# Load trained models and predictions
 print("\n#2 Loading Trained Models...")
 
 models_dict = {}
@@ -77,27 +75,31 @@ for name, file in zip(model_names, model_files):
         preds = model.predict(X_test)
         predictions_dict[name] = preds
         
-        # Get probabilities (if available)
+        # Get probability-like scores for ROC curves
         if hasattr(model, "predict_proba"):
             probs = model.predict_proba(X_test)
             probabilities_dict[name] = probs
-            print(f"    {name} (with probabilities)")
+            print(f"{name} (with probabilities)")
+        elif hasattr(model, "decision_function"):
+            scores = model.decision_function(X_test)
+            probabilities_dict[name] = scores
+            print(f"{name} (with decision scores)")
         else:
-            print(f"    {name}")
+            print(f"{name}")
     except Exception as e:
         print(f"   ✗ Error loading {name}: {e}")
 
 
-# 3. Load results from csv files
-print("\n#3 Loading Results Summary...")
+# Load results from csv files
+print("\n#3 Loading Results Summary")
 
 results_df = pd.read_csv(f"{RESULT_DIR}/traditional_model_results.csv")
 print("\nModel Performance Summary:")
 print(results_df.to_string(index=False))
 
 
-# 4. Detailed Classification Reports
-print("\n#4 Generating Detailed Classification Reports")
+# Classification Reports
+print("\n#4 Generating Classification Reports")
 
 report_file = open(f"{ANALYSIS_DIR}/classification_reports.txt", "w")
 
@@ -125,17 +127,17 @@ for name, preds in predictions_dict.items():
 report_file.close()
 print(f"   Saved to: {ANALYSIS_DIR}/classification_reports.txt")
 
-# 5. ROC Curves
-print("\n#5 Generating ROC Curves...")
+# ROC Curves
+print("\n#5 Generating ROC Curves")
 
 # Binarize labels for ROC curve
 classes = np.unique(y_test)
 n_classes = len(classes)
 y_test_bin = label_binarize(y_test, classes=classes)
 
-for name, probs in probabilities_dict.items():
-    if probs is None:
-        print(f"    {name} doesn't support probability predictions")
+for name, scores in probabilities_dict.items():
+    if scores is None:
+        print(f"{name} doesn't support probability or decision scores")
         continue
     
     plt.figure(figsize=(10, 8))
@@ -147,10 +149,11 @@ for name, probs in probabilities_dict.items():
     colors = ['blue', 'red', 'green']
     
     for i, class_label in enumerate(classes):
+        class_scores = scores[:, i] if np.ndim(scores) > 1 else scores
         if n_classes == 2:
-            fpr, tpr, _ = roc_curve(y_test_bin[:, i], probs[:, i])
+            fpr, tpr, _ = roc_curve(y_test_bin[:, i], class_scores)
         else:
-            fpr, tpr, _ = roc_curve(y_test_bin[:, i], probs[:, i])
+            fpr, tpr, _ = roc_curve(y_test_bin[:, i], class_scores)
         
         roc_auc = auc(fpr, tpr)
         fpr_dict[class_label] = fpr
@@ -174,10 +177,10 @@ for name, probs in probabilities_dict.items():
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"     {name}")
+    print(f"{name} ROC curve created")
 
-# 6. Confusion Matrices
-print("\n#6 Generating Confusion Matrices...")
+# Confusion Matrices
+print("\n#6 Generating Confusion Matrices")
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
@@ -208,10 +211,10 @@ plt.tight_layout()
 plt.savefig(f"{ANALYSIS_DIR}/confusion_matrices_combined.png", dpi=300, bbox_inches='tight')
 plt.close()
 
-print("     Confusion matrices saved")
+print("Confusion matrices saved")
 
-# 7. Model Comparison
-print("\n#7 Creating Model Comparison Visualizations...")
+# Model Comparison
+print("\n#7 Creating Model Comparisons")
 
 # Calculate per-class metrics
 comparison_data = []
@@ -256,22 +259,19 @@ if len(predictions_dict) > 0:
         plt.savefig(f"{ANALYSIS_DIR}/model_metrics_comparison.png", dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("     Model metrics comparison")
+        print("Model metrics comparison created")
     else:
-        print("      No predictions available for detailed comparison")
+        print("No predictions available for detailed comparison")
 else:
-    print("    No models loaded, skipping detailed comparison")
+    print("No models loaded, skipping detailed comparison")
 
 # Plot 2: Overall Accuracy/F1 Comparison
 fig, ax = plt.subplots(figsize=(10, 6))
-
 results_sorted = results_df.sort_values('Accuracy', ascending=True)
 x = np.arange(len(results_sorted))
 width = 0.35
-
 ax.barh(x - width/2, results_sorted['Accuracy'], width, label='Accuracy', alpha=0.8)
 ax.barh(x + width/2, results_sorted['F1 Score'], width, label='F1 Score', alpha=0.8)
-
 ax.set_xlabel('Score', fontsize=12)
 ax.set_ylabel('Model', fontsize=12)
 ax.set_title('Model Performance Comparison', fontsize=14, fontweight='bold')
@@ -281,25 +281,20 @@ ax.set_yticks(x)
 ax.set_yticklabels(results_sorted['Model'])
 ax.legend(fontsize=11)
 ax.grid(axis='x', alpha=0.3)
-
 plt.tight_layout()
 plt.savefig(f"{ANALYSIS_DIR}/overall_performance_comparison.png", dpi=300, bbox_inches='tight')
 plt.close()
+print("Overall performance comparison created")
 
-print("    Overall performance comparison")
-
-
-
-
-# 8. Skill Gap Analysis: Association Rule Mining using the Apriori Algorithm
-print("\n#8 Performing Skill Gap Analysis (Association Rules)...")
+# Skill Gap Analysis: Association Rule Mining using the Apriori Algorithm
+print("\n#8 Performing Skill Gap Analysis")
 
 if HAS_MLXTEND:
     try:
         # Load original job descriptions
         clean_data = pd.read_csv(f"{DATA_DIR}/clean_all_jobs.csv")
         
-        if 'job_description' in clean_data.columns:
+        if 'description' in clean_data.columns:
             # Extract keywords/skills from job descriptions
             # Define common skills to track
             skills = ['python', 'java', 'sql', 'aws', 'azure', 'docker', 'kubernetes',
@@ -310,7 +305,7 @@ if HAS_MLXTEND:
             # Create transaction data (which skills are in each job description)
             transactions = []
             
-            for description in clean_data['job_description'].fillna('').str.lower():
+            for description in clean_data['description'].fillna('').str.lower():
                 skills_found = [skill for skill in skills if skill in description]
                 if skills_found:
                     transactions.append(skills_found)
@@ -321,10 +316,10 @@ if HAS_MLXTEND:
                 te_ary = te.fit(transactions).transform(transactions)
                 df_encoded = pd.DataFrame(te_ary, columns=te.columns_)
                 
-                frequent_itemsets = apriori(df_encoded, min_support=0.1, use_colnames=True)
+                frequent_itemsets = apriori(df_encoded, min_support=0.05, use_colnames=True)
                 
                 if len(frequent_itemsets) > 0:
-                    rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.5)
+                    rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.3)
                     
                     if len(rules) > 0:
                         # Sort by lift
@@ -362,33 +357,29 @@ if HAS_MLXTEND:
                         })
                         rules_export.to_csv(f"{ANALYSIS_DIR}/skill_gap_rules.csv", index=False)
                         
-                        print("     Skill gap analysis completed")
-                        print(f"     Found {len(rules)} association rules")
+                        print("Skill gap analysis completed")
+                        print(f"Found {len(rules)} association rules")
                     else:
-                        print("     No strong association rules found")
+                        print("No strong association rules found")
                 else:
-                    print("     No frequent itemsets found")
+                    print("No frequent itemsets found")
             else:
-                print("     No skill transactions found")
+                print("No skill transactions found")
         else:
-            print("      'job_description' column not found in clean data")
+            print("'job_description' column not found in clean data")
     except Exception as e:
-        print(f"     ✗ Error in skill gap analysis: {e}")
+        print(f"Error in skill gap analysis: {e}")
 else:
-    print("   mlxtend not installed, skipping skill gap analysis")
-    print("   Install with: pip install mlxtend")
+    print("mlxtend not installed, skipping skill gap analysis")
+    print("Install with: pip install mlxtend")
 
-# 9. Traditional vs Modern ML Comparison
-print("\n#9 Comparing Traditional vs Modern ML...")
-
-# NOTE: Using manual BERT metrics (provided) instead of loading predictions file.
-# These were produced by the DistilBERT run and supplied manually.
+# Traditional vs Modern ML Comparison
+print("\n#9 Comparing Traditional vs Modern ML")
 bert_accuracy = 0.7007
 bert_precision = 0.7003
 bert_recall = 0.7007
 bert_f1 = 0.7005
 bert_available = True
-
 if bert_available:
     # Create comparison dataframe
     trad_modern_comparison = pd.DataFrame({
@@ -419,8 +410,7 @@ if bert_available:
         ],
         'Type': ['Traditional', 'Traditional', 'Traditional', 'Modern']
     })
-    
-    print("\nModel Performance Comparison:")
+    print("Model Performance Comparison:")
     print(trad_modern_comparison.to_string(index=False))
     
     # Save comparison
@@ -447,7 +437,7 @@ if bert_available:
     plt.savefig(f"{ANALYSIS_DIR}/traditional_vs_modern_metrics.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    print("    Comparison metrics saved")
+    print("\nComparison metrics saved")
     
     # Radar Chart Comparison
     fig, ax = plt.subplots(figsize=(10, 8), subplot_kw=dict(projection='polar'))
@@ -475,8 +465,8 @@ if bert_available:
     plt.savefig(f"{ANALYSIS_DIR}/performance_radar_chart.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    print("    Performance radar chart saved")
-    # Generate comprehensive summary report
+    print("Performance radar chart saved")
+    # Generate summary report
     summary_file = open(f"{ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt", "w")
     
     summary_file.write("="*70 + "\n")
@@ -489,7 +479,10 @@ if bert_available:
     # Determine winner
     best_trad = results_df.iloc[0]
     bert_better = bert_accuracy > best_trad['Accuracy']
-    winner = "BERT (Modern ML)" if bert_better else best_trad['Model'] + " (Traditional ML)"
+    if bert_better:
+        winner = "BERT (Modern ML)"  
+    else:
+        winner = best_trad['Model'] + " (Traditional ML)"
     
     summary_file.write(f"Overall Winner: {winner}\n")
     summary_file.write(f"Performance Gap: {abs(bert_accuracy - best_trad['Accuracy']):.4f} ({abs(bert_accuracy - best_trad['Accuracy'])*100:.2f}%)\n\n")
@@ -564,7 +557,6 @@ if bert_available:
     
     summary_file.close()
     
-    print(f"   Summary saved to: {ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt")
-
+    print(f"Summary saved to: {ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt")
 
 print("Analysis complete!")

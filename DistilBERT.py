@@ -149,7 +149,7 @@ print(f"Precision: {precision:.4f}")
 print(f"Recall   : {recall:.4f}")
 print(f"F1 Score : {f1:.4f}")
 
-# Save predictions to CSV for downstream analysis
+# Save predictions to CSV for analysis
 try:
     inv_label_map = {0: 'low', 1: 'medium', 2: 'high'}
     pred_labels = [inv_label_map[int(p)] for p in all_preds]
