@@ -1,16 +1,16 @@
 ======================================================================
-Analysis: Traditional ML vs Modern ML (BERT)
+Analysis: Traditional ML vs Modern ML (DistilBERT)
 ======================================================================
 
 Summary
 ----------------------------------------------------------------------
 
-Overall Winner: BERT (Modern ML)
+Overall Winner: DistilBERT (Modern ML)
 Performance Gap: 0.0226 (2.26%)
 
 Model Performance Rankings
 ----------------------------------------------------------------------
-4. BERT                 Acc: 0.7007  F1: 0.7005  Type: Modern
+4. DistilBERT           Acc: 0.7007  F1: 0.7005  Type: Modern
 1. Random Forest        Acc: 0.6781  F1: 0.6709  Type: Traditional
 2. Linear SVM           Acc: 0.6677  F1: 0.6666  Type: Traditional
 3. Naive Bayes          Acc: 0.6174  F1: 0.6134  Type: Traditional
@@ -25,7 +25,7 @@ Traditional ML Best: Random Forest
   Recall:    0.6781
   F1 Score:  0.6709
 
-Modern ML: BERT
+Modern ML: DistilBERT
   Accuracy:  0.7007
   Precision: 0.7003
   Recall:    0.7007
@@ -36,30 +36,30 @@ Class-Wise Performance Comparison
 
 HIGH:
   Traditional ML Avg - Precision: 0.7030, Recall: 0.7192, F1: 0.7107
-  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
+  DistilBERT        - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
 
 LOW:
   Traditional ML Avg - Precision: 0.6808, Recall: 0.7507, F1: 0.7138
-  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
+  DistilBERT        - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
 
 MEDIUM:
   Traditional ML Avg - Precision: 0.5652, Recall: 0.4928, F1: 0.5256
-  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
+  DistilBERT        - Precision: 1.0000, Recall: 1.0000, F1: 1.0000
 
 
 Key Findings
 ----------------------------------------------------------------------
-BERT Outperforms Traditional ML
+DistilBERT Outperforms Traditional ML
   - Accuracy improvement: +3.33%
-  - BERT is better suited for semantic understanding of job descriptions
+  - DistilBERT is better suited for semantic understanding of job descriptions
   - Modern transformer models capture nuanced language patterns
 
 
 Recommendations
 ----------------------------------------------------------------------
-1. Deploy BERT as production model for salary prediction
-2. Consider ensemble: BERT + Random Forest for robustness
-3. Further fine-tune BERT on domain-specific job data
+1. Deploy DistilBERT as production model for salary prediction
+2. Consider ensemble: DistilBERT + Random Forest for robustness
+3. Further fine-tune DistilBERT on domain-specific job data
 
 Generated Visualizations
 ----------------------------------------------------------------------

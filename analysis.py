@@ -383,7 +383,7 @@ bert_available = True
 if bert_available:
     # Create comparison dataframe
     trad_modern_comparison = pd.DataFrame({
-        'Model': ['Random Forest', 'Linear SVM', 'Naive Bayes', 'BERT'],
+        'Model': ['Random Forest', 'Linear SVM', 'Naive Bayes', 'DistilBERT'],
         'Accuracy': [
             results_df.iloc[0]['Accuracy'],
             results_df.iloc[1]['Accuracy'],
@@ -432,7 +432,7 @@ if bert_available:
         ax.set_xlim([0, 1.0])
         ax.grid(axis='x', alpha=0.3)
     
-    plt.suptitle('Traditional ML vs Modern ML (BERT)', fontsize=14, fontweight='bold', y=1.00)
+    plt.suptitle('Traditional ML vs Modern ML (DistilBERT)', fontsize=14, fontweight='bold', y=1.00)
     plt.tight_layout()
     plt.savefig(f"{ANALYSIS_DIR}/traditional_vs_modern_metrics.png", dpi=300, bbox_inches='tight')
     plt.close()
@@ -470,7 +470,7 @@ if bert_available:
     summary_file = open(f"{ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt", "w")
     
     summary_file.write("="*70 + "\n")
-    summary_file.write("Analysis: Traditional ML vs Modern ML (BERT)\n")
+    summary_file.write("Analysis: Traditional ML vs Modern ML (DistilBERT)\n")
     summary_file.write("="*70 + "\n\n")
     
     summary_file.write("Summary\n")
@@ -480,7 +480,7 @@ if bert_available:
     best_trad = results_df.iloc[0]
     bert_better = bert_accuracy > best_trad['Accuracy']
     if bert_better:
-        winner = "BERT (Modern ML)"  
+        winner = "DistilBERT (Modern ML)"  
     else:
         winner = best_trad['Model'] + " (Traditional ML)"
     
@@ -502,7 +502,7 @@ if bert_available:
     summary_file.write(f"  Recall:    {results_df.iloc[0]['Recall']:.4f}\n")
     summary_file.write(f"  F1 Score:  {results_df.iloc[0]['F1 Score']:.4f}\n\n")
     
-    summary_file.write("Modern ML: BERT\n")
+    summary_file.write("Modern ML: DistilBERT\n")
     summary_file.write(f"  Accuracy:  {bert_accuracy:.4f}\n")
     summary_file.write(f"  Precision: {bert_precision:.4f}\n")
     summary_file.write(f"  Recall:    {bert_recall:.4f}\n")
@@ -517,21 +517,21 @@ if bert_available:
         
         summary_file.write(f"{class_label.upper()}:\n")
         summary_file.write(f"  Traditional ML Avg - Precision: {trad_data['Precision'].mean():.4f}, Recall: {trad_data['Recall'].mean():.4f}, F1: {trad_data['F1'].mean():.4f}\n")
-        summary_file.write(f"  BERT               - Precision: 1.0000, Recall: 1.0000, F1: 1.0000\n\n")
+        summary_file.write(f"  DistilBERT        - Precision: 1.0000, Recall: 1.0000, F1: 1.0000\n\n")
     
     summary_file.write("\nKey Findings\n")
     summary_file.write("-"*70 + "\n")
     
     if bert_better:
         improvement = (bert_accuracy - best_trad['Accuracy']) / best_trad['Accuracy'] * 100
-        summary_file.write(f"BERT Outperforms Traditional ML\n")
+        summary_file.write(f"DistilBERT Outperforms Traditional ML\n")
         summary_file.write(f"  - Accuracy improvement: +{improvement:.2f}%\n")
-        summary_file.write(f"  - BERT is better suited for semantic understanding of job descriptions\n")
+        summary_file.write(f"  - DistilBERT is better suited for semantic understanding of job descriptions\n")
         summary_file.write(f"  - Modern transformer models capture nuanced language patterns\n")
     else:
         gap = (best_trad['Accuracy'] - bert_accuracy) / best_trad['Accuracy'] * 100
         summary_file.write(f"Traditional ML (Random Forest) Competitive\n")
-        summary_file.write(f"  - Only {gap:.2f}% behind BERT\n")
+        summary_file.write(f"  - Only {gap:.2f}% behind DistilBERT\n")
         summary_file.write(f"  - TF-IDF features are effective for this task\n")
         summary_file.write(f"  - Traditional methods offer better interpretability and speed\n")
     
@@ -539,13 +539,13 @@ if bert_available:
     summary_file.write("-"*70 + "\n")
     
     if bert_better:
-        summary_file.write("1. Deploy BERT as production model for salary prediction\n")
-        summary_file.write("2. Consider ensemble: BERT + Random Forest for robustness\n")
-        summary_file.write("3. Further fine-tune BERT on domain-specific job data\n")
+        summary_file.write("1. Deploy DistilBERT as production model for salary prediction\n")
+        summary_file.write("2. Consider ensemble: DistilBERT + Random Forest for robustness\n")
+        summary_file.write("3. Further fine-tune DistilBERT on domain-specific job data\n")
     else:
         summary_file.write("1. Random Forest remains competitive and easier to deploy\n")
-        summary_file.write("2. Consider: is BERT's marginal benefit worth the complexity?\n")
-        summary_file.write("3. Hybrid approach: Use Random Forest for production, BERT for validation\n")
+        summary_file.write("2. Consider: is DistilBERT's marginal benefit worth the complexity?\n")
+        summary_file.write("3. Hybrid approach: Use Random Forest for production, DistilBERT for validation\n")
     
     summary_file.write("\nGenerated Visualizations\n")
     summary_file.write("-"*70 + "\n")
