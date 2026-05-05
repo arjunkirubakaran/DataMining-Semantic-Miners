@@ -1,16 +1,3 @@
-# traditional_ml_.py
-# Traditional ML
-# Project: The Semantic Job Miner
-#
-# Goal:
-# Train and compare traditional ML baseline models:
-#   1. Random Forest
-#   2. Multinomial Naive Bayes
-#   3. Linear SVM
-#
-# Predict salary classes:
-#   low / medium / high
-
 import os
 import time
 import joblib
@@ -157,15 +144,6 @@ print(results_df)
 
 results_df.to_csv(f"{RESULT_DIR}/traditional_model_results.csv", index=False)
 
-
-# Bar Chart Comparison
-plt.figure(figsize=(10, 6))
-sns.barplot(data=results_df, x="Model", y="Accuracy")
-plt.title("Traditional Model Accuracy Comparison")
-plt.ylim(0, 1)
-plt.tight_layout()
-plt.savefig(f"{RESULT_DIR}/accuracy_comparison.png")
-plt.close()
 
 
 print("\nSaved all outputs to:")

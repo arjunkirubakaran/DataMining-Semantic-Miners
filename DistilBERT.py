@@ -1,6 +1,3 @@
-# DistilBERT.py
-# Project: The Semantic Job Miner
-
 import os
 import time
 import pandas as pd
@@ -123,6 +120,7 @@ print("Evaluating model...")
 model.eval()
 all_preds = []
 all_labels = []
+all_probs = []
 
 # Turn off gradients for validation to save memory and speed up
 with torch.no_grad():
@@ -133,12 +131,14 @@ with torch.no_grad():
         
         outputs = model(input_ids, attention_mask=attention_mask)
         
-        # Get the highest probability class
+        # Get the highest probability class and softmax probabilities
         logits = outputs.logits
+        probs = torch.softmax(logits, dim=-1)
         preds = torch.argmax(logits, dim=-1)
         
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
+        all_probs.extend(probs.cpu().numpy())
 
 # Calculate Metrics
 acc = accuracy_score(all_labels, all_preds)
@@ -157,7 +157,7 @@ try:
     pred_df = pd.DataFrame({
         'bert_input': test_texts,
         'true_label': true_labels,
-        'predicted_label': pred_labels
+        'predicted_label': pred_labels,
     })
     pred_file = f"{RESULT_DIR}/bert_predictions.csv"
     pred_df.to_csv(pred_file, index=False)

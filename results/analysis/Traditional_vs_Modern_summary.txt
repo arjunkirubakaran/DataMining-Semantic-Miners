@@ -64,7 +64,6 @@ Recommendations
 Generated Visualizations
 ----------------------------------------------------------------------
 1. traditional_vs_modern_metrics.png - 4-panel metrics comparison
-2. performance_radar_chart.png - Radar chart of all models
-3. traditional_vs_modern_comparison.csv - Full metrics table
+2. traditional_vs_modern_comparison.csv - Full metrics table
 
 ======================================================================
