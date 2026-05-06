@@ -1,5 +1,0 @@
-Skill Gap Association Rules - Interpretation
-Each rule is shown as 'Antecedent -> Consequent'.
-Horizontal axis (Lift): how many times more likely the consequent is when the antecedent is present, compared to baseline.
-Annotations on the plot: 'conf' = confidence = P(Consequent|Antecedent), 'sup' = support = fraction of records containing both.
-Example: 'git -> rest' means job postings that mention 'git' also mention 'rest' more often than expected; lift>1 indicates a positive association.

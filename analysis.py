@@ -238,6 +238,105 @@ if HAS_MLXTEND:
     try:
         # Load original job descriptions
         clean_data = pd.read_csv(f"{DATA_DIR}/clean_all_jobs.csv")
+
+        if 'salary_label' not in clean_data.columns and {'max_salary', 'pay_period'}.issubset(clean_data.columns):
+            multipliers = {
+                'yearly': 1,
+                'monthly': 12,
+                'weekly': 52,
+                'hourly': 2080
+            }
+
+            clean_data['annual_salary'] = clean_data['max_salary'] * clean_data['pay_period'].map(multipliers)
+            clean_data = clean_data.dropna(subset=['annual_salary'])
+
+            p33 = clean_data['annual_salary'].quantile(0.33)
+            p66 = clean_data['annual_salary'].quantile(0.66)
+
+            def bucket_salary(salary):
+                if salary < p33:
+                    return 'low'
+                elif salary < p66:
+                    return 'medium'
+                else:
+                    return 'high'
+
+            clean_data['salary_label'] = clean_data['annual_salary'].apply(bucket_salary)
+
+        def extract_skill_transactions(text_series, skill_list):
+            transactions = []
+            for text in text_series.fillna('').str.lower():
+                skills_found = [skill for skill in skill_list if skill in text]
+                if skills_found:
+                    transactions.append(skills_found)
+            return transactions
+
+        def mine_and_export_rules(transactions, output_prefix, title, min_support=0.05, min_confidence=0.3, top_n=10):
+            if len(transactions) == 0:
+                print(f"No transactions found for {title}")
+                return
+
+            te = TransactionEncoder()
+            te_ary = te.fit(transactions).transform(transactions)
+            df_encoded = pd.DataFrame(te_ary, columns=te.columns_)
+
+            frequent_itemsets = apriori(df_encoded, min_support=min_support, use_colnames=True)
+            if len(frequent_itemsets) == 0:
+                print(f"No frequent itemsets found for {title}")
+                return
+
+            rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=min_confidence)
+            if len(rules) == 0:
+                print(f"No strong association rules found for {title}")
+                return
+
+            rules = rules.sort_values('lift', ascending=False).head(top_n)
+
+            fig, ax = plt.subplots(figsize=(12, 8))
+
+            rule_labels = []
+            for _, row in rules.iterrows():
+                antecedent = ', '.join(list(row['antecedents']))
+                consequent = ', '.join(list(row['consequents']))
+                rule_labels.append(f"{antecedent} → {consequent}")
+
+            y_pos = np.arange(len(rule_labels))
+            lifts = rules['lift'].values
+            confidences = rules['confidence'].values
+            supports = rules['support'].values
+
+            bars = ax.barh(y_pos, lifts, alpha=0.9, color='skyblue')
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(rule_labels, fontsize=10)
+            if output_prefix == "skill_gap_rules":
+                ax.set_xlabel('Lift (how many times more often these skills appear together in jobs)', fontsize=12)
+            else:
+                ax.set_xlabel('Lift', fontsize=12)
+            ax.set_title(title, fontsize=14, fontweight='bold')
+            ax.grid(axis='x', alpha=0.3)
+
+            for i, bar in enumerate(bars):
+                w = bar.get_width()
+                conf = confidences[i]
+                sup = supports[i]
+                ax.text(w + 0.02 * max(lifts), bar.get_y() + bar.get_height()/2,
+                        f"conf={conf:.2f}, sup={sup:.2f}", va='center', fontsize=9)
+
+            plt.tight_layout()
+            plt.savefig(f"{ANALYSIS_DIR}/{output_prefix}.png", dpi=300, bbox_inches='tight')
+            plt.close()
+
+            rules_export = pd.DataFrame({
+                'Antecedent': rules['antecedents'].apply(lambda x: ', '.join(list(x))),
+                'Consequent': rules['consequents'].apply(lambda x: ', '.join(list(x))),
+                'Support': rules['support'],
+                'Confidence': rules['confidence'],
+                'Lift': rules['lift']
+            })
+            rules_export.to_csv(f"{ANALYSIS_DIR}/{output_prefix}.csv", index=False)
+
+            print(f"Skill Gap analysis completed")
+            print(f"Found {len(rules)} association rules")
         
         if 'description' in clean_data.columns:
             # Extract keywords/skills from job descriptions
@@ -248,91 +347,131 @@ if HAS_MLXTEND:
                      'microservices', 'cloud', 'distributed', 'nosql', 'mongodb']
             
             # Create transaction data (which skills are in each job description)
-            transactions = []
-            
-            for description in clean_data['description'].fillna('').str.lower():
-                skills_found = [skill for skill in skills if skill in description]
-                if skills_found:
-                    transactions.append(skills_found)
-            
-            if len(transactions) > 0:
-                # Apply Apriori
-                te = TransactionEncoder()
-                te_ary = te.fit(transactions).transform(transactions)
-                df_encoded = pd.DataFrame(te_ary, columns=te.columns_)
-                
-                frequent_itemsets = apriori(df_encoded, min_support=0.05, use_colnames=True)
-                
-                if len(frequent_itemsets) > 0:
-                    rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.3)
-                    
-                    if len(rules) > 0:
-                        # Sort by lift
-                        rules = rules.sort_values('lift', ascending=False).head(10)
-                        
-                        # Create visualization (improved labels & explanation)
-                        fig, ax = plt.subplots(figsize=(12, 8))
+            transactions = extract_skill_transactions(clean_data['description'], skills)
 
-                        rule_labels = []
-                        for idx, row in rules.iterrows():
-                            antecedent = ', '.join(list(row['antecedents']))
-                            consequent = ', '.join(list(row['consequents']))
-                            # compact rule label for y-axis
-                            label = f"{antecedent} → {consequent}"
-                            rule_labels.append(label)
+            mine_and_export_rules(
+                transactions,
+                output_prefix="skill_gap_rules",
+                title="Top 10 Skill Co-occurrence Rules (ordered by Lift)"
+            )
 
-                        y_pos = np.arange(len(rule_labels))
-                        lifts = rules['lift'].values
-                        confidences = rules['confidence'].values
-                        supports = rules['support'].values
+            if 'salary_label' in clean_data.columns:
+                skill_salary_transactions = []
+                for _, row in clean_data[['description', 'salary_label']].fillna('').iterrows():
+                    description = str(row['description']).lower()
+                    salary_label = str(row['salary_label']).strip().lower()
+                    skills_found = [skill for skill in skills if skill in description]
+                    if skills_found and salary_label in {'low', 'medium', 'high'}:
+                        skill_salary_transactions.append(skills_found + [f"salary_{salary_label}"])
 
-                        bars = ax.barh(y_pos, lifts, alpha=0.9, color='skyblue')
-                        ax.set_yticks(y_pos)
-                        ax.set_yticklabels(rule_labels, fontsize=10)
-                        ax.set_xlabel('Lift (how many times more often these skills appear together in job postings)', fontsize=12)
-                        ax.set_title('Top 10 Skill Co-occurrence Rules (ordered by Lift)', fontsize=14, fontweight='bold')
-                        ax.grid(axis='x', alpha=0.3)
+                if len(skill_salary_transactions) > 0:
+                    te = TransactionEncoder()
+                    te_ary = te.fit(skill_salary_transactions).transform(skill_salary_transactions)
+                    df_encoded = pd.DataFrame(te_ary, columns=te.columns_)
 
-                        # Annotate each bar with confidence and support for clarity
-                        for i, bar in enumerate(bars):
-                            w = bar.get_width()
-                            conf = confidences[i]
-                            sup = supports[i]
-                            ax.text(w + 0.02 * max(lifts), bar.get_y() + bar.get_height()/2,
-                                    f"conf={conf:.2f}, sup={sup:.2f}", va='center', fontsize=9)
+                    frequent_itemsets = apriori(df_encoded, min_support=0.05, use_colnames=True)
+                    if len(frequent_itemsets) > 0:
+                        rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.3)
+                        if len(rules) > 0:
+                            rules = rules[
+                                rules['consequents'].apply(lambda x: any(item.startswith('salary_') for item in x)) &
+                                rules['antecedents'].apply(lambda x: not any(item.startswith('salary_') for item in x))
+                            ]
 
-                        plt.tight_layout()
-                        plt.savefig(f"{ANALYSIS_DIR}/skill_gap_association_rules.png", dpi=300, bbox_inches='tight')
-                        plt.close()
+                            if len(rules) > 0:
+                                rules = rules.sort_values('lift', ascending=False).head(10)
 
-                        # Save a short text explanation alongside the figure for reports
-                        expl_file = f"{ANALYSIS_DIR}/skill_gap_rule_explanation.txt"
-                        with open(expl_file, 'w') as ef:
-                            ef.write("Skill Gap Association Rules - Interpretation\n")
-                            ef.write("Each rule is shown as 'Antecedent -> Consequent'.\n")
-                            ef.write("Horizontal axis (Lift): how many times more likely the consequent is when the antecedent is present, compared to baseline.\n")
-                            ef.write("Annotations on the plot: 'conf' = confidence = P(Consequent|Antecedent), 'sup' = support = fraction of records containing both.\n")
-                            ef.write("Example: 'git -> rest' means job postings that mention 'git' also mention 'rest' more often than expected; lift>1 indicates a positive association.\n")
+                                fig, ax = plt.subplots(figsize=(12, 8))
+                                rule_labels = []
+                                for _, row in rules.iterrows():
+                                    antecedent = ', '.join(list(row['antecedents']))
+                                    consequent = ', '.join(list(row['consequents']))
+                                    rule_labels.append(f"{antecedent} → {consequent}")
 
-                        
-                        # Save rules to CSV
-                        rules_export = pd.DataFrame({
-                            'Antecedent': rules['antecedents'].apply(lambda x: ', '.join(list(x))),
-                            'Consequent': rules['consequents'].apply(lambda x: ', '.join(list(x))),
-                            'Support': rules['support'],
-                            'Confidence': rules['confidence'],
-                            'Lift': rules['lift']
-                        })
-                        rules_export.to_csv(f"{ANALYSIS_DIR}/skill_gap_rules.csv", index=False)
-                        
-                        print("Skill gap analysis completed")
-                        print(f"Found {len(rules)} association rules")
+                                y_pos = np.arange(len(rule_labels))
+                                lifts = rules['lift'].values
+                                confidences = rules['confidence'].values
+                                supports = rules['support'].values
+
+                                bars = ax.barh(y_pos, lifts, alpha=0.9, color='salmon')
+                                ax.set_yticks(y_pos)
+                                ax.set_yticklabels(rule_labels, fontsize=10)
+                                ax.set_xlabel('Lift (how many times more often these skills appear with this salary range)', fontsize=12)
+                                ax.set_title('Top Skill-to-Salary Association Rules (ordered by Lift)', fontsize=14, fontweight='bold')
+                                ax.grid(axis='x', alpha=0.3)
+
+                                for i, bar in enumerate(bars):
+                                    w = bar.get_width()
+                                    conf = confidences[i]
+                                    sup = supports[i]
+                                    ax.text(w + 0.02 * max(lifts), bar.get_y() + bar.get_height()/2,
+                                            f"conf={conf:.2f}, sup={sup:.2f}", va='center', fontsize=9)
+
+                                plt.tight_layout()
+                                plt.savefig(f"{ANALYSIS_DIR}/skill_to_salary_rules.png", dpi=300, bbox_inches='tight')
+                                plt.close()
+
+                                rules_export = pd.DataFrame({
+                                    'Antecedent': rules['antecedents'].apply(lambda x: ', '.join(list(x))),
+                                    'Consequent': rules['consequents'].apply(lambda x: ', '.join(list(x))),
+                                    'Support': rules['support'],
+                                    'Confidence': rules['confidence'],
+                                    'Lift': rules['lift']
+                                })
+                                rules_export.to_csv(f"{ANALYSIS_DIR}/skill_to_salary_rules.csv", index=False)
+
+                                print("Skill to salary analysis completed")
+                                print(f"Found {len(rules)} association rules")
+                            else:
+                                print("No skill-to-salary rules found after filtering")
+                        else:
+                            print("No strong skill-to-salary association rules found")
                     else:
-                        print("No strong association rules found")
+                        print("No frequent itemsets found for skill-to-salary analysis")
                 else:
-                    print("No frequent itemsets found")
+                    print("No skill-to-salary transactions found")
             else:
-                print("No skill transactions found")
+                print("'salary_label' column not found in clean data")
+
+            # Description length analysis by salary range
+            if 'salary_label' in clean_data.columns and 'description' in clean_data.columns:
+                description_length_data = clean_data[['description', 'salary_label']].dropna().copy()
+                description_length_data['description_length'] = description_length_data['description'].astype(str).str.len()
+
+                length_summary = description_length_data.groupby('salary_label')['description_length'].agg(
+                    count='count',
+                    mean='mean',
+                    median='median',
+                    std='std'
+                ).reset_index()
+                length_summary.to_csv(f"{ANALYSIS_DIR}/description_length_by_salary.csv", index=False)
+
+                salary_order = ['low', 'medium', 'high']
+                length_summary['salary_label'] = pd.Categorical(length_summary['salary_label'], categories=salary_order, ordered=True)
+                length_summary = length_summary.sort_values('salary_label')
+
+                fig, ax = plt.subplots(figsize=(10, 6))
+                bars = ax.bar(
+                    length_summary['salary_label'].astype(str),
+                    length_summary['mean'],
+                    color=['#4c78a8', '#f58518', '#54a24b']
+                )
+                ax.set_title('Average Job Description Length by Salary Range', fontsize=14, fontweight='bold')
+                ax.set_xlabel('Salary Range', fontsize=12)
+                ax.set_ylabel('Average Description Length (characters)', fontsize=12)
+                ax.grid(axis='y', alpha=0.3)
+
+                for bar, count in zip(bars, length_summary['count']):
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width()/2, height + max(length_summary['mean']) * 0.01,
+                            f"n={int(count)}", ha='center', va='bottom', fontsize=9)
+
+                plt.tight_layout()
+                plt.savefig(f"{ANALYSIS_DIR}/description_length_by_salary.png", dpi=300, bbox_inches='tight')
+                plt.close()
+
+                print("Description length analysis completed")
+                print("Saved description_length_by_salary.csv and description_length_by_salary.png")
         else:
             print("'job_description' column not found in clean data")
     except Exception as e:
@@ -343,12 +482,12 @@ else:
 
 # Traditional vs Modern ML Comparison
 print("\n#8 Comparing Traditional vs Modern ML")
-bert_accuracy = 0.7007
-bert_precision = 0.7003
-bert_recall = 0.7007
-bert_f1 = 0.7005
-bert_available = True
-if bert_available:
+distilbert_accuracy = 0.7007
+distilbert_precision = 0.7003
+distilbert_recall = 0.7007
+distilbert_f1 = 0.7005
+distilbert_available = True
+if distilbert_available:
     # Create comparison dataframe
     trad_modern_comparison = pd.DataFrame({
         'Model': ['Random Forest', 'Linear SVM', 'Naive Bayes', 'DistilBERT'],
@@ -356,25 +495,25 @@ if bert_available:
             results_df.iloc[0]['Accuracy'],
             results_df.iloc[1]['Accuracy'],
             results_df.iloc[2]['Accuracy'],
-            bert_accuracy
+            distilbert_accuracy
         ],
         'Precision': [
             results_df.iloc[0]['Precision'],
             results_df.iloc[1]['Precision'],
             results_df.iloc[2]['Precision'],
-            bert_precision
+            distilbert_precision
         ],
         'Recall': [
             results_df.iloc[0]['Recall'],
             results_df.iloc[1]['Recall'],
             results_df.iloc[2]['Recall'],
-            bert_recall
+            distilbert_recall
         ],
         'F1 Score': [
             results_df.iloc[0]['F1 Score'],
             results_df.iloc[1]['F1 Score'],
             results_df.iloc[2]['F1 Score'],
-            bert_f1
+            distilbert_f1
         ],
         'Type': ['Traditional', 'Traditional', 'Traditional', 'Modern']
     })
@@ -426,14 +565,14 @@ if bert_available:
     
     # Determine winner
     best_trad = results_df.iloc[0]
-    bert_better = bert_accuracy > best_trad['Accuracy']
-    if bert_better:
+    distilbert_better = distilbert_accuracy > best_trad['Accuracy']
+    if distilbert_better:
         winner = "DistilBERT (Modern ML)"  
     else:
         winner = best_trad['Model'] + " (Traditional ML)"
     
     summary_file.write(f"Overall Winner: {winner}\n")
-    summary_file.write(f"Performance Gap: {abs(bert_accuracy - best_trad['Accuracy']):.4f} ({abs(bert_accuracy - best_trad['Accuracy'])*100:.2f}%)\n\n")
+    summary_file.write(f"Performance Gap: {abs(distilbert_accuracy - best_trad['Accuracy']):.4f} ({abs(distilbert_accuracy - best_trad['Accuracy'])*100:.2f}%)\n\n")
     
     summary_file.write("Model Performance Rankings\n")
     summary_file.write("-"*70 + "\n")
@@ -451,10 +590,10 @@ if bert_available:
     summary_file.write(f"  F1 Score:  {results_df.iloc[0]['F1 Score']:.4f}\n\n")
     
     summary_file.write("Modern ML: DistilBERT\n")
-    summary_file.write(f"  Accuracy:  {bert_accuracy:.4f}\n")
-    summary_file.write(f"  Precision: {bert_precision:.4f}\n")
-    summary_file.write(f"  Recall:    {bert_recall:.4f}\n")
-    summary_file.write(f"  F1 Score:  {bert_f1:.4f}\n\n")
+    summary_file.write(f"  Accuracy:  {distilbert_accuracy:.4f}\n")
+    summary_file.write(f"  Precision: {distilbert_precision:.4f}\n")
+    summary_file.write(f"  Recall:    {distilbert_recall:.4f}\n")
+    summary_file.write(f"  F1 Score:  {distilbert_f1:.4f}\n\n")
     
     summary_file.write("Class-Wise Performance Comparison\n")
     summary_file.write("-"*70 + "\n\n")
@@ -470,14 +609,14 @@ if bert_available:
     summary_file.write("\nKey Findings\n")
     summary_file.write("-"*70 + "\n")
     
-    if bert_better:
-        improvement = (bert_accuracy - best_trad['Accuracy']) / best_trad['Accuracy'] * 100
+    if distilbert_better:
+        improvement = (distilbert_accuracy - best_trad['Accuracy']) / best_trad['Accuracy'] * 100
         summary_file.write(f"DistilBERT Outperforms Traditional ML\n")
         summary_file.write(f"  - Accuracy improvement: +{improvement:.2f}%\n")
         summary_file.write(f"  - DistilBERT is better suited for semantic understanding of job descriptions\n")
         summary_file.write(f"  - Modern transformer models capture nuanced language patterns\n")
     else:
-        gap = (best_trad['Accuracy'] - bert_accuracy) / best_trad['Accuracy'] * 100
+        gap = (best_trad['Accuracy'] - distilbert_accuracy) / best_trad['Accuracy'] * 100
         summary_file.write(f"Traditional ML (Random Forest) Competitive\n")
         summary_file.write(f"  - Only {gap:.2f}% behind DistilBERT\n")
         summary_file.write(f"  - TF-IDF features are effective for this task\n")
@@ -486,7 +625,7 @@ if bert_available:
     summary_file.write("\n\nRecommendations\n")
     summary_file.write("-"*70 + "\n")
     
-    if bert_better:
+    if distilbert_better:
         summary_file.write("1. Deploy DistilBERT as production model for salary prediction\n")
         summary_file.write("2. Consider ensemble: DistilBERT + Random Forest for robustness\n")
         summary_file.write("3. Further fine-tune DistilBERT on domain-specific job data\n")
