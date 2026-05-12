@@ -25,7 +25,7 @@ except ImportError:
     print("Warning: mlxtend not installed. Skill Gap analysis will not be done.")
     print("Install with: pip install mlxtend")
 
-# Config
+# Configuration
 DATA_DIR = "."
 MODEL_DIR = "saved_models"
 RESULT_DIR = "results"
@@ -553,96 +553,4 @@ if distilbert_available:
     except Exception as e:
         print(f"Failed to create combined metrics image: {e}")
     
-    # Generate summary report
-    summary_file = open(f"{ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt", "w")
-    
-    summary_file.write("="*70 + "\n")
-    summary_file.write("Analysis: Traditional ML vs Modern ML (DistilBERT)\n")
-    summary_file.write("="*70 + "\n\n")
-    
-    summary_file.write("Summary\n")
-    summary_file.write("-"*70 + "\n\n")
-    
-    # Determine winner
-    best_trad = results_df.iloc[0]
-    distilbert_better = distilbert_accuracy > best_trad['Accuracy']
-    if distilbert_better:
-        winner = "DistilBERT (Modern ML)"  
-    else:
-        winner = best_trad['Model'] + " (Traditional ML)"
-    
-    summary_file.write(f"Overall Winner: {winner}\n")
-    summary_file.write(f"Performance Gap: {abs(distilbert_accuracy - best_trad['Accuracy']):.4f} ({abs(distilbert_accuracy - best_trad['Accuracy'])*100:.2f}%)\n\n")
-    
-    summary_file.write("Model Performance Rankings\n")
-    summary_file.write("-"*70 + "\n")
-    
-    for idx, row in trad_modern_comparison.sort_values('Accuracy', ascending=False).iterrows():
-        summary_file.write(f"{idx+1}. {row['Model']:<20} Acc: {row['Accuracy']:.4f}  F1: {row['F1 Score']:.4f}  Type: {row['Type']}\n")
-    
-    summary_file.write("\n\nMETRICS\n")
-    summary_file.write("-"*70 + "\n\n")
-    
-    summary_file.write("Traditional ML Best: Random Forest\n")
-    summary_file.write(f"  Accuracy:  {results_df.iloc[0]['Accuracy']:.4f}\n")
-    summary_file.write(f"  Precision: {results_df.iloc[0]['Precision']:.4f}\n")
-    summary_file.write(f"  Recall:    {results_df.iloc[0]['Recall']:.4f}\n")
-    summary_file.write(f"  F1 Score:  {results_df.iloc[0]['F1 Score']:.4f}\n\n")
-    
-    summary_file.write("Modern ML: DistilBERT\n")
-    summary_file.write(f"  Accuracy:  {distilbert_accuracy:.4f}\n")
-    summary_file.write(f"  Precision: {distilbert_precision:.4f}\n")
-    summary_file.write(f"  Recall:    {distilbert_recall:.4f}\n")
-    summary_file.write(f"  F1 Score:  {distilbert_f1:.4f}\n\n")
-    
-    summary_file.write("Class-Wise Performance Comparison\n")
-    summary_file.write("-"*70 + "\n\n")
-    
-    # Build class comparison
-    for class_label in classes:
-        trad_data = comparison_df[comparison_df['Class'] == class_label]
-        
-        summary_file.write(f"{class_label.upper()}:\n")
-        summary_file.write(f"  Traditional ML Avg - Precision: {trad_data['Precision'].mean():.4f}, Recall: {trad_data['Recall'].mean():.4f}, F1: {trad_data['F1'].mean():.4f}\n")
-        summary_file.write(f"  DistilBERT        - Precision: 1.0000, Recall: 1.0000, F1: 1.0000\n\n")
-    
-    summary_file.write("\nKey Findings\n")
-    summary_file.write("-"*70 + "\n")
-    
-    if distilbert_better:
-        improvement = (distilbert_accuracy - best_trad['Accuracy']) / best_trad['Accuracy'] * 100
-        summary_file.write(f"DistilBERT Outperforms Traditional ML\n")
-        summary_file.write(f"  - Accuracy improvement: +{improvement:.2f}%\n")
-        summary_file.write(f"  - DistilBERT is better suited for semantic understanding of job descriptions\n")
-        summary_file.write(f"  - Modern transformer models capture nuanced language patterns\n")
-    else:
-        gap = (best_trad['Accuracy'] - distilbert_accuracy) / best_trad['Accuracy'] * 100
-        summary_file.write(f"Traditional ML (Random Forest) Competitive\n")
-        summary_file.write(f"  - Only {gap:.2f}% behind DistilBERT\n")
-        summary_file.write(f"  - TF-IDF features are effective for this task\n")
-        summary_file.write(f"  - Traditional methods offer better interpretability and speed\n")
-    
-    summary_file.write("\n\nRecommendations\n")
-    summary_file.write("-"*70 + "\n")
-    
-    if distilbert_better:
-        summary_file.write("1. Deploy DistilBERT as production model for salary prediction\n")
-        summary_file.write("2. Consider ensemble: DistilBERT + Random Forest for robustness\n")
-        summary_file.write("3. Further fine-tune DistilBERT on domain-specific job data\n")
-    else:
-        summary_file.write("1. Random Forest remains competitive and easier to deploy\n")
-        summary_file.write("2. Consider: is DistilBERT's marginal benefit worth the complexity?\n")
-        summary_file.write("3. Hybrid approach: Use Random Forest for production, DistilBERT for validation\n")
-    
-    summary_file.write("\nGenerated Visualizations\n")
-    summary_file.write("-"*70 + "\n")
-    summary_file.write("1. traditional_vs_modern_metrics.png - 4-panel metrics comparison\n")
-    summary_file.write("2. traditional_vs_modern_comparison.csv - Full metrics table\n\n")
-    
-    summary_file.write("="*70 + "\n")
-    
-    summary_file.close()
-    
-    print(f"Summary saved to: {ANALYSIS_DIR}/Traditional_vs_Modern_summary.txt")
-
 print("Analysis complete!")

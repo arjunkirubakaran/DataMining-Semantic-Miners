@@ -1,5 +1,4 @@
 import os
-import time
 import joblib
 import numpy as np
 import pandas as pd
@@ -75,9 +74,7 @@ for name, model in models.items():
     print("=" * 60)
     print("Training:", name)
 
-    start = time.time()
     model.fit(X_train, y_train)
-    train_time = time.time() - start
 
     preds = model.predict(X_test)
 
@@ -93,7 +90,6 @@ for name, model in models.items():
     print(f"Precision: {precision:.4f}")
     print(f"Recall   : {recall:.4f}")
     print(f"F1 Score : {f1:.4f}")
-    print(f"Train Time: {train_time:.2f} sec")
     print()
 
     print("Classification Report:")
@@ -105,8 +101,7 @@ for name, model in models.items():
         "Accuracy": acc,
         "Precision": precision,
         "Recall": recall,
-        "F1 Score": f1,
-        "Train Time (sec)": train_time
+        "F1 Score": f1
     })
 
     # Save model
