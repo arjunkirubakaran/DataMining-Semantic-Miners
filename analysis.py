@@ -95,7 +95,7 @@ results_df = pd.read_csv(f"{RESULT_DIR}/traditional_model_results.csv")
 print("\nModel Performance Summary:")
 print(results_df.to_string(index=False))
 
-# ROC Curves - Combined Traditional Models (Single Plot)
+# ROC Curve
 print("\n#4 Generating ROC Curves")
 
 # Binarize labels for ROC curve
@@ -103,7 +103,6 @@ classes = np.unique(y_test)
 n_classes = len(classes)
 y_test_bin = label_binarize(y_test, classes=classes)
 
-# Create single combined ROC figure with traditional models only
 fig, ax = plt.subplots(figsize=(10, 8))
 model_colors = {'Random Forest': '#1f77b4', 'Linear SVM': '#ff7f0e', 'Naive Bayes': '#2ca02c'}
 
